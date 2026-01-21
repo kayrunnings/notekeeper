@@ -1,20 +1,36 @@
 "use client"
 
-import { Note } from "@/lib/types"
+import { Note, Folder } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Star, Trash2, Edit } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Star, Trash2, Edit, FolderIcon, FileX, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface NoteCardProps {
   note: Note
+  folders?: Folder[]
   onEdit: (note: Note) => void
   onDelete: (noteId: string) => void
   onToggleFavorite: (noteId: string) => void
+  onMoveToFolder?: (noteId: string, folderId: string | null) => void
 }
 
-export function NoteCard({ note, onEdit, onDelete, onToggleFavorite }: NoteCardProps) {
+export function NoteCard({
+  note,
+  folders = [],
+  onEdit,
+  onDelete,
+  onToggleFavorite,
+  onMoveToFolder,
+}: NoteCardProps) {
   // Format date to readable string
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -32,10 +48,13 @@ export function NoteCard({ note, onEdit, onDelete, onToggleFavorite }: NoteCardP
       .replace(/\*(.*?)\*/g, "$1") // Italic
       .replace(/^[-*]\s/gm, "") // List items
       .replace(/^\d+\.\s/gm, "") // Numbered lists
-    return plainText.length > maxLength 
-      ? plainText.substring(0, maxLength) + "..." 
+    return plainText.length > maxLength
+      ? plainText.substring(0, maxLength) + "..."
       : plainText
   }
+
+  // Get current folder name
+  const currentFolder = folders.find((f) => f.id === note.folder_id)
 
   return (
     <Card className="group relative hover:shadow-md transition-shadow duration-200 cursor-pointer bg-card">
@@ -47,8 +66,8 @@ export function NoteCard({ note, onEdit, onDelete, onToggleFavorite }: NoteCardP
         }}
         className={cn(
           "absolute top-3 right-3 p-1.5 rounded-full transition-colors",
-          note.is_favorite 
-            ? "text-amber-500 bg-amber-50 hover:bg-amber-100" 
+          note.is_favorite
+            ? "text-amber-500 bg-amber-50 hover:bg-amber-100"
             : "text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted opacity-0 group-hover:opacity-100"
         )}
         aria-label={note.is_favorite ? "Remove from favorites" : "Add to favorites"}
@@ -61,9 +80,18 @@ export function NoteCard({ note, onEdit, onDelete, onToggleFavorite }: NoteCardP
           <CardTitle className="text-base font-medium pr-8 line-clamp-1">
             {note.title || "Untitled"}
           </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            {formatDate(note.updated_at)}
-          </p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{formatDate(note.updated_at)}</span>
+            {currentFolder && (
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <FolderIcon className="h-3 w-3" />
+                  {currentFolder.name}
+                </span>
+              </>
+            )}
+          </div>
         </CardHeader>
 
         <CardContent className="pb-3">
@@ -92,6 +120,53 @@ export function NoteCard({ note, onEdit, onDelete, onToggleFavorite }: NoteCardP
 
       {/* Action buttons - show on hover */}
       <div className="absolute bottom-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Move to folder dropdown */}
+        {onMoveToFolder && folders.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e) => e.stopPropagation()}
+                aria-label="Move to folder"
+              >
+                <FolderIcon className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              {folders.map((folder) => (
+                <DropdownMenuItem
+                  key={folder.id}
+                  onClick={() => onMoveToFolder(note.id, folder.id)}
+                  className="flex items-center justify-between"
+                >
+                  <span className="flex items-center gap-2">
+                    <FolderIcon className="h-4 w-4" />
+                    {folder.name}
+                  </span>
+                  {note.folder_id === folder.id && (
+                    <Check className="h-4 w-4 text-primary" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => onMoveToFolder(note.id, null)}
+                className="flex items-center justify-between"
+              >
+                <span className="flex items-center gap-2">
+                  <FileX className="h-4 w-4" />
+                  Unfiled
+                </span>
+                {note.folder_id === null && (
+                  <Check className="h-4 w-4 text-primary" />
+                )}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
         <Button
           variant="ghost"
           size="icon"

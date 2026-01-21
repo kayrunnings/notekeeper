@@ -206,6 +206,36 @@ export default function DashboardPage() {
     }
   }
 
+  // Handle moving a note to a folder
+  const handleMoveToFolder = async (noteId: string, folderId: string | null) => {
+    const note = notes.find((n) => n.id === noteId)
+    if (!note) return
+
+    const previousFolderId = note.folder_id
+
+    // Optimistic update
+    setNotes((prev) =>
+      prev.map((n) =>
+        n.id === noteId ? { ...n, folder_id: folderId } : n
+      )
+    )
+
+    const { error } = await supabase
+      .from("notes")
+      .update({ folder_id: folderId })
+      .eq("id", noteId)
+
+    if (error) {
+      console.error("Error moving note to folder:", error)
+      // Revert on error
+      setNotes((prev) =>
+        prev.map((n) =>
+          n.id === noteId ? { ...n, folder_id: previousFolderId } : n
+        )
+      )
+    }
+  }
+
   // Handle creating a folder
   const handleCreateFolder = async (name: string) => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -429,9 +459,11 @@ export default function DashboardPage() {
             <h2 className="text-2xl font-semibold mb-6">{getFilterTitle()}</h2>
             <NotesList
               notes={filteredNotes}
+              folders={folders}
               onEditNote={handleEditNote}
               onDeleteNote={handleDeleteNote}
               onToggleFavorite={handleToggleFavorite}
+              onMoveToFolder={handleMoveToFolder}
             />
           </div>
         </main>
