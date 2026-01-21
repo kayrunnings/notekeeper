@@ -21,6 +21,7 @@ import {
   FileX,
   X,
   Check,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -55,6 +56,7 @@ export function Sidebar({
   const [newFolderName, setNewFolderName] = useState("")
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null)
   const [editingFolderName, setEditingFolderName] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   const isSelected = (filter: FilterType) => {
     if (typeof selectedFilter === "string" && typeof filter === "string") {
@@ -68,11 +70,16 @@ export function Sidebar({
 
   const handleCreateFolder = async () => {
     const trimmedName = newFolderName.trim()
-    if (!trimmedName) return
+    if (!trimmedName || isLoading) return
 
-    await onCreateFolder(trimmedName)
-    setNewFolderName("")
-    setIsCreatingFolder(false)
+    setIsLoading(true)
+    try {
+      await onCreateFolder(trimmedName)
+      setNewFolderName("")
+      setIsCreatingFolder(false)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleStartRename = (folder: Folder) => {
@@ -81,13 +88,21 @@ export function Sidebar({
   }
 
   const handleRenameFolder = async () => {
-    if (!editingFolderId) return
+    if (!editingFolderId || isLoading) return
     const trimmedName = editingFolderName.trim()
-    if (!trimmedName) return
+    if (!trimmedName) {
+      handleCancelRename()
+      return
+    }
 
-    await onRenameFolder(editingFolderId, trimmedName)
-    setEditingFolderId(null)
-    setEditingFolderName("")
+    setIsLoading(true)
+    try {
+      await onRenameFolder(editingFolderId, trimmedName)
+      setEditingFolderId(null)
+      setEditingFolderName("")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleCancelRename = () => {
@@ -181,17 +196,32 @@ export function Sidebar({
             onKeyDown={(e) => {
               if (e.key === "Enter") handleCreateFolder()
             }}
+            onBlur={() => {
+              if (newFolderName.trim()) {
+                handleCreateFolder()
+              } else {
+                setIsCreatingFolder(false)
+                setNewFolderName("")
+              }
+            }}
             placeholder="Folder name"
             className="h-7 text-sm"
             autoFocus
+            disabled={isLoading}
+            maxLength={100}
           />
           <Button
             variant="ghost"
             size="icon"
             className="h-6 w-6 shrink-0"
             onClick={handleCreateFolder}
+            disabled={isLoading}
           >
-            <Check className="h-4 w-4" />
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Check className="h-4 w-4" />
+            )}
           </Button>
           <Button
             variant="ghost"
@@ -201,6 +231,7 @@ export function Sidebar({
               setIsCreatingFolder(false)
               setNewFolderName("")
             }}
+            disabled={isLoading}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -221,22 +252,37 @@ export function Sidebar({
                     if (e.key === "Enter") handleRenameFolder()
                     if (e.key === "Escape") handleCancelRename()
                   }}
+                  onBlur={() => {
+                    if (editingFolderName.trim()) {
+                      handleRenameFolder()
+                    } else {
+                      handleCancelRename()
+                    }
+                  }}
                   className="h-7 text-sm"
                   autoFocus
+                  disabled={isLoading}
+                  maxLength={100}
                 />
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 shrink-0"
                   onClick={handleRenameFolder}
+                  disabled={isLoading}
                 >
-                  <Check className="h-4 w-4" />
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 shrink-0"
                   onClick={handleCancelRename}
+                  disabled={isLoading}
                 >
                   <X className="h-4 w-4" />
                 </Button>
