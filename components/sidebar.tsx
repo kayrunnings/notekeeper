@@ -244,6 +244,10 @@ export function Sidebar({
             ) : (
               <button
                 onClick={() => onFilterSelect({ folderId: folder.id })}
+                onDoubleClick={(e) => {
+                  e.preventDefault()
+                  handleStartRename(folder)
+                }}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full text-left pr-8",
                   isSelected({ folderId: folder.id })
