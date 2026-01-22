@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Note } from "@/lib/types"
+import { Note, Folder } from "@/lib/types"
 import { NoteCard } from "./note-card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -11,16 +11,20 @@ import { cn } from "@/lib/utils"
 
 interface NotesListProps {
   notes: Note[]
+  folders?: Folder[]
   onEditNote: (note: Note) => void
   onDeleteNote: (noteId: string) => void
   onToggleFavorite: (noteId: string) => void
+  onMoveToFolder?: (noteId: string, folderId: string | null) => void
 }
 
 export function NotesList({
   notes,
+  folders = [],
   onEditNote,
   onDeleteNote,
   onToggleFavorite,
+  onMoveToFolder,
 }: NotesListProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
@@ -148,9 +152,11 @@ export function NotesList({
             <NoteCard
               key={note.id}
               note={note}
+              folders={folders}
               onEdit={onEditNote}
               onDelete={onDeleteNote}
               onToggleFavorite={onToggleFavorite}
+              onMoveToFolder={onMoveToFolder}
             />
           ))}
         </div>
